@@ -1,4 +1,4 @@
-# 📰 Reddit AI News Digest
+# 📰 Reddit AI Digest
 
 A Python application that automatically fetches posts from multiple subreddits of your choosing, generates AI-powered summaries using Claude AI, and sends beautifully formatted email digests to your email.
 
