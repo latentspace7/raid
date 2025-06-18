@@ -211,8 +211,9 @@ The application requires the following Python packages:
 
 ## 📋 TODO
 
-- `async batches` - Made code async with Anthropic's async class
+- `async batches` - Make code async with Anthropic's async class
 - `templates` - Refactor to move to another module
+- `LLMs` - Add support for more LLMs (Gemini, OpenAI)
 
 ---
 
