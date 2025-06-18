@@ -163,15 +163,6 @@ Modify `src/templates/email_template.py` to customize the email appearance:
 
 ### Adding Features
 
-Some ideas for extending the app:
-
-- **Scheduling**: Use cron jobs or task schedulers for automated daily/weekly digests
-- **Web Interface**: Add a Flask/FastAPI web interface for configuration
-- **Multiple Recipients**: Support sending to multiple email addresses
-- **Post Filtering**: Add keyword filtering or content-based filtering
-- **Database Storage**: Store posts and summaries in a database
-- **RSS Integration**: Generate RSS feeds alongside emails
-
 ## 🐛 Troubleshooting
 
 ### Common Issues
