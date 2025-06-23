@@ -24,34 +24,65 @@ client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3) -> List[Dict[str, Any]]:
     """Fetch posts from multiple subreddits"""
     all_posts = []
-
+    track_ids = []
     for sub_name in subreddit_list:
         print(f"Fetching from r/{sub_name}...")
         try:
             subreddit = reddit.subreddit(sub_name)
+
             for post in subreddit.hot(limit=posts_per_sub):
-                post_info = {
-                    'title': post.title,
-                    'author': str(post.author) if post.author else '[deleted]',
-                    'score': post.score,
-                    'num_comments': post.num_comments,
-                    'created_utc': post.created_utc,
-                    'subreddit': str(post.subreddit),
-                    'permalink': f"https://reddit.com{post.permalink}",
-                    'url': post.url,
-                    'is_self': post.is_self,
-                    'selftext': post.selftext if post.is_self else '',
-                    'upvote_ratio': post.upvote_ratio
-                }
 
-                if post.is_self:
-                    post_info['content_type'] = 'text'
-                    post_info['content'] = post.selftext
-                else:
-                    post_info['content_type'] = 'link'
-                    post_info['content'] = f"External link to: {post.url}"
+                if not post.stickied and post.name not in track_ids:
+                    post_info = {
+                        'title': post.title,
+                        'author': str(post.author) if post.author else '[deleted]',
+                        'score': post.score,
+                        'num_comments': post.num_comments,
+                        'created_utc': post.created_utc,
+                        'subreddit': str(post.subreddit),
+                        'permalink': f"https://reddit.com{post.permalink}",
+                        'url': post.url,
+                        'is_self': post.is_self,
+                        'selftext': post.selftext if post.is_self else '',
+                        'upvote_ratio': post.upvote_ratio
+                    }
 
-                all_posts.append(post_info)
+                    if post.is_self:
+                        post_info['content_type'] = 'text'
+                        post_info['content'] = post.selftext
+                    else:
+                        post_info['content_type'] = 'link'
+                        post_info['content'] = f"External link to: {post.url}"
+
+                    all_posts.append(post_info)
+                    track_ids.append(post.name)
+
+            for post in subreddit.new(limit=3):
+                if not post.stickied and post.name not in track_ids:
+                    post_info = {
+                        'title': post.title,
+                        'author': str(post.author) if post.author else '[deleted]',
+                        'score': post.score,
+                        'num_comments': post.num_comments,
+                        'created_utc': post.created_utc,
+                        'subreddit': str(post.subreddit),
+                        'permalink': f"https://reddit.com{post.permalink}",
+                        'url': post.url,
+                        'is_self': post.is_self,
+                        'selftext': post.selftext if post.is_self else '',
+                        'upvote_ratio': post.upvote_ratio
+                    }
+
+                    if post.is_self:
+                        post_info['content_type'] = 'text'
+                        post_info['content'] = post.selftext
+                    else:
+                        post_info['content_type'] = 'link'
+                        post_info['content'] = f"External link to: {post.url}"
+
+                    all_posts.append(post_info)
+                    track_ids.append(post.name)
+
         except Exception as e:
             print(f"Error fetching r/{sub_name}: {e}")
 
@@ -60,7 +91,7 @@ def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3)
 
 def create_summary_prompt_batch(posts_batch: List[Dict[str, Any]], batch_num: int, total_batches: int) -> str:
     """Create a prompt for a batch of posts"""
-    prompt = f"""You are creating a Reddit digest email (batch {batch_num} of {total_batches}). 
+    prompt = f"""You are creating a Reddit digest email (batch {batch_num} of {total_batches}).
 Summarize these {len(posts_batch)} posts concisely. Each summary should be 1-2 sentences maximum.
 
 Format EXACTLY as follows for parsing:
@@ -222,7 +253,7 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
             <div class="footer">
                 <p>This digest was automatically generated using Reddit API and Claude AI</p>
                 <p style="margin-top: 10px;">
-                    <a href="https://reddit.com">Visit Reddit</a> •                    
+                    <a href="https://reddit.com">Visit Reddit</a> •
                 </p>
             </div>
         </div>
@@ -235,7 +266,7 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
 
 def main() -> None:
 
-    subreddit_list = ["StableDiffusion", "technology", "programming"]
+    subreddit_list = ["Python", "technology", "javascript"]
     posts_per_subreddit = 6
 
     to_email = os.getenv('TO_EMAIL', 'your-email@gmail.com')
