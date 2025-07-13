@@ -118,151 +118,153 @@ Posts to summarize:
     return prompt
 
 # If running with the Anthropic SDK
-# def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
-#     """Process posts in batches to handle large numbers"""
-#     all_summaries = []
-
-#     # Process in batches
-#     for i in range(0, len(posts_data), batch_size):
-#         batch = posts_data[i:i + batch_size]
-#         batch_num = (i // batch_size) + 1
-#         total_batches = (len(posts_data) + batch_size - 1) // batch_size
-
-#         print(f"Processing batch {batch_num}/{total_batches}...")
-
-#         prompt = create_summary_prompt_batch(batch, batch_num, total_batches)
-
-#         try:
-#             response = client.messages.create(
-#                 model="claude-3-5-haiku-latest",
-#                 max_tokens=2000,
-#                 temperature=0.0,
-#                 messages=[{"role": "user", "content": prompt}]
-#             )
-#             all_summaries.append(response.content[0].text)
-#         except Exception as e:
-#             print(f"Error in batch {batch_num}: {str(e)}")
-
-#     return "\n".join(all_summaries)
 
 
-# LM studio for local inference
 def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
-    """Process posts in batches using LM Studio's local API via httpx."""
+    """Process posts in batches to handle large numbers"""
     all_summaries = []
 
-    api_url = "http://127.0.0.1:1234/v1/chat/completions"
-    headers = {"Content-Type": "application/json"}
+    # Process in batches
+    for i in range(0, len(posts_data), batch_size):
+        batch = posts_data[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (len(posts_data) + batch_size - 1) // batch_size
 
-    with httpx.Client(timeout=60.0) as client:
-        for i in range(0, len(posts_data), batch_size):
-            batch = posts_data[i:i + batch_size]
-            batch_num = (i // batch_size) + 1
-            total_batches = (len(posts_data) + batch_size - 1) // batch_size
+        print(f"Processing batch {batch_num}/{total_batches}...")
 
-            print(f"Processing batch {batch_num}/{total_batches}...")
+        prompt = create_summary_prompt_batch(batch, batch_num, total_batches)
 
-            prompt = create_summary_prompt_batch(
-                batch, batch_num, total_batches)
-
-            payload = {
-                "model": "meta-llama_-_llama-3.2-1b-instruct",
-                "messages": [
-                    {"role": "system", "content": "You are a helpful assistant that summarizes user content."},
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.0,
-                "max_tokens": 2000,
-                "stream": False
-            }
-
-            try:
-                response = client.post(api_url, headers=headers, json=payload)
-                response.raise_for_status()
-                summary = response.json()["choices"][0]["message"]["content"]
-                all_summaries.append(summary)
-            except httpx.HTTPError as e:
-                print(f"Error in batch {batch_num}: {str(e)}")
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1000,
+                temperature=0.0,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            all_summaries.append(response.content[0].text)
+        except Exception as e:
+            print(f"Error in batch {batch_num}: {str(e)}")
 
     return "\n".join(all_summaries)
 
-# If running with the Anthropic SDK
-# def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
-#     """Parse the summary into structured data"""
-#     posts = []
 
-#     for post_section in summary_text.split('[END]'):
-#         if '[SUBREDDIT:' in post_section:
+# LM studio for local inference using Llama3.2-1B
+# def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
+#     """Process posts in batches using LM Studio's local API via httpx."""
+#     all_summaries = []
+
+#     api_url = "http://127.0.0.1:1234/v1/chat/completions"
+#     headers = {"Content-Type": "application/json"}
+
+#     with httpx.Client(timeout=60.0) as client:
+#         for i in range(0, len(posts_data), batch_size):
+#             batch = posts_data[i:i + batch_size]
+#             batch_num = (i // batch_size) + 1
+#             total_batches = (len(posts_data) + batch_size - 1) // batch_size
+
+#             print(f"Processing batch {batch_num}/{total_batches}...")
+
+#             prompt = create_summary_prompt_batch(
+#                 batch, batch_num, total_batches)
+
+#             payload = {
+#                 "model": "meta-llama_-_llama-3.2-1b-instruct",
+#                 "messages": [
+#                     {"role": "system", "content": "You are a helpful assistant that summarizes user content."},
+#                     {"role": "user", "content": prompt}
+#                 ],
+#                 "temperature": 0.0,
+#                 "max_tokens": 2000,
+#                 "stream": False
+#             }
+
 #             try:
-#                 subreddit = post_section.split(
-#                     '[SUBREDDIT:')[1].split(']')[0].strip()
-#                 title = post_section.split('[TITLE:')[1].split(']')[0].strip()
-#                 link = post_section.split('[LINK:')[1].split(']')[0].strip()
-#                 summary = post_section.split(
-#                     '[SUMMARY:')[1].split(']')[0].strip()
+#                 response = client.post(api_url, headers=headers, json=payload)
+#                 response.raise_for_status()
+#                 summary = response.json()["choices"][0]["message"]["content"]
+#                 all_summaries.append(summary)
+#             except httpx.HTTPError as e:
+#                 print(f"Error in batch {batch_num}: {str(e)}")
 
-#                 posts.append({
-#                     'subreddit': subreddit,
-#                     'title': title,
-#                     'link': link,
-#                     'summary': summary
-#                 })
-#             except:
-#                 continue
+#     return "\n".join(all_summaries)
 
-#     return posts
-
-
+# If running with the Anthropic SDK
 def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
-    """Parse the summary into structured data - fixed for actual LLM output"""
+    """Parse the summary into structured data"""
     posts = []
 
-    # Split by [SUBREDDIT: pattern to get individual post blocks
-    sections = summary_text.split('[SUBREDDIT:')
+    for post_section in summary_text.split('[END]'):
+        if '[SUBREDDIT:' in post_section:
+            try:
+                subreddit = post_section.split(
+                    '[SUBREDDIT:')[1].split(']')[0].strip()
+                title = post_section.split('[TITLE:')[1].split(']')[0].strip()
+                link = post_section.split('[LINK:')[1].split(']')[0].strip()
+                summary = post_section.split(
+                    '[SUMMARY:')[1].split(']')[0].strip()
 
-    for section in sections[1:]:  # Skip first empty section
-        try:
-            # Extract subreddit (everything up to the first ]
-            if ']' not in section:
-                continue
-
-            lines = section.split('\n')
-            subreddit = lines[0].split(']')[0].strip()
-
-            # Find the title line
-            title = ""
-            link = ""
-            summary = ""
-
-            for line in lines:
-                if line.strip().startswith('[TITLE:'):
-                    title = line.split('[TITLE:')[1].split(']')[0].strip()
-                elif line.strip().startswith('[LINK:'):
-                    link = line.split('[LINK:')[1].split(']')[0].strip()
-                elif line.strip().startswith('[SUMMARY:'):
-                    summary = line.split('[SUMMARY:')[1].split(']')[0].strip()
-
-            # Only add if we have all required fields
-            if subreddit and title and link and summary:
                 posts.append({
-                    # Remove r/ prefix if present
-                    'subreddit': subreddit.replace('r/', ''),
+                    'subreddit': subreddit,
                     'title': title,
                     'link': link,
                     'summary': summary
                 })
-                print(f"✅ Parsed: {title[:50]}...")
-            else:
-                print(
-                    f"❌ Missing fields in section: subreddit='{subreddit}', title='{title}', link='{link}', summary='{summary}'")
+            except:
+                continue
 
-        except Exception as e:
-            print(f"❌ Error parsing section: {e}")
-            print(f"Section content: {section[:200]}...")
-            continue
-
-    print(f"🎯 Successfully parsed {len(posts)} posts from summary text")
     return posts
+
+# Parsing if using local inference
+# def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
+#     """Parse the summary into structured data - fixed for actual LLM output"""
+#     posts = []
+
+#     # Split by [SUBREDDIT: pattern to get individual post blocks
+#     sections = summary_text.split('[SUBREDDIT:')
+
+#     for section in sections[1:]:  # Skip first empty section
+#         try:
+#             # Extract subreddit (everything up to the first ]
+#             if ']' not in section:
+#                 continue
+
+#             lines = section.split('\n')
+#             subreddit = lines[0].split(']')[0].strip()
+
+#             # Find the title line
+#             title = ""
+#             link = ""
+#             summary = ""
+
+#             for line in lines:
+#                 if line.strip().startswith('[TITLE:'):
+#                     title = line.split('[TITLE:')[1].split(']')[0].strip()
+#                 elif line.strip().startswith('[LINK:'):
+#                     link = line.split('[LINK:')[1].split(']')[0].strip()
+#                 elif line.strip().startswith('[SUMMARY:'):
+#                     summary = line.split('[SUMMARY:')[1].split(']')[0].strip()
+
+#             # Only add if we have all required fields
+#             if subreddit and title and link and summary:
+#                 posts.append({
+#                     # Remove r/ prefix if present
+#                     'subreddit': subreddit.replace('r/', ''),
+#                     'title': title,
+#                     'link': link,
+#                     'summary': summary
+#                 })
+#                 print(f"✅ Parsed: {title[:50]}...")
+#             else:
+#                 print(
+#                     f"❌ Missing fields in section: subreddit='{subreddit}', title='{title}', link='{link}', summary='{summary}'")
+
+#         except Exception as e:
+#             print(f"❌ Error parsing section: {e}")
+#             print(f"Section content: {section[:200]}...")
+#             continue
+
+#     print(f"🎯 Successfully parsed {len(posts)} posts from summary text")
+#     return posts
 
 
 def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list: List[str], max_display: int = 15) -> str:
@@ -360,7 +362,8 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
 
 def main() -> None:
 
-    subreddit_list = ["LocalLLaMA", "reactjs", "Python", "javascript"]
+    subreddit_list = ["LocalLLaMA", "ClaudeAI", "modelcontextprotocol", "Anthropic", "GeminiAI", "OpenAI", "RooCode", "Rag", "agentdevelopmentkit", "singularity", "ArtificialInteligence", "GithubCopilot", "StableDiffusion",
+                      "FastAPI", "reactjs", "Python", "technology", "javascript"]
 
     posts_per_subreddit = 6
 
