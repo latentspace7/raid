@@ -8,7 +8,8 @@ A Python application that automatically fetches posts from multiple subreddits o
 - 🤖 **AI-Powered Summaries**: Uses Claude AI to create concise, intelligent summaries
 - 📧 **Email Delivery**: Sends HTML and plain text email digests via Gmail SMTP
 - 🎨 **Beautiful HTML Templates**: Modern, responsive email design
-- ⚡ **Batch Processing**: Efficiently handles large numbers of posts
+- ⚡ **Asynchronous Processing**: Efficiently handles large numbers of posts with async/await
+- 🚀 **Concurrent Operations**: Fetches subreddits and processes AI summaries in parallel
 - 📊 **Smart Organization**: Groups posts by subreddit with statistics
 
 ## 🚀 Quick Start
@@ -73,6 +74,8 @@ uv run src/main.py
 python src/main.py
 ```
 
+> **Note**: The application now runs fully asynchronously for improved performance and concurrent processing of Reddit posts and AI summaries.
+
 ## 🔧 Configuration
 
 ### Customizing Subreddits
@@ -127,29 +130,12 @@ html_email = create_condensed_html_email(
 3. Generate an app password for "Mail"
 4. Use this password (not your regular Gmail password)
 
-## 📁 Project Structure
-
-```
-reddit_news/
-├── src/
-│   ├── __init__.py
-│   ├── main.py              # Main application logic
-│   └── templates/
-│       ├── __init__.py
-│       └── email_template.py # HTML email template
-├── .env                     # Environment variables (create this)
-├── .env.example            # Template for environment variables
-├── pyproject.toml          # Project dependencies
-├── uv.lock                 # Lock file for dependencies
-└── README.md               # This file
-```
-
 ## 🎯 How It Works
 
-1. **Fetch Posts**: The app connects to Reddit API and fetches recent posts from specified subreddits
-2. **AI Processing**: Posts are sent to Claude AI in batches for intelligent summarization
+1. **Fetch Posts**: The app connects to Reddit API and concurrently fetches recent posts from multiple subreddits using async operations
+2. **AI Processing**: Posts are sent to Claude AI in parallel batches for intelligent summarization using async API calls
 3. **Email Generation**: Creates both HTML and plain text versions of the digest
-4. **Delivery**: Sends the formatted email via Gmail SMTP
+4. **Delivery**: Sends the formatted email via Gmail SMTP using async email delivery
 
 ## 🛠️ Customization
 
@@ -160,6 +146,15 @@ Modify `src/templates/email_template.py` to customize the email appearance:
 - Change colors, fonts, and layout
 - Add your branding or logo
 - Modify the CSS styles
+
+### Async Architecture
+
+The application uses modern async/await patterns for concurency:
+
+- **Concurrent Subreddit Fetching**: All subreddits are fetched simultaneously using `asyncio.gather()`
+- **Parallel AI Processing**: Claude AI requests are batched and processed concurrently
+- **Async Email Delivery**: Non-blocking email sending using `aiosmtplib`
+- **Efficient Resource Usage**: Proper connection management and cleanup
 
 ### Adding Features
 
@@ -196,15 +191,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 The application requires the following Python packages:
 
-- `anthropic>=0.54.0` - Claude AI API client
-- `praw>=7.8.1` - Reddit API wrapper
+- `anthropic>=0.54.0` - Claude AI async API client
+- `asyncpraw>=7.8.1` - Async Reddit API wrapper
+- `aiosmtplib>=3.0.0` - Async SMTP email client
 - `python-dotenv>=1.1.0` - Environment variable management
 
 ## 📋 TODO
 
-- `async batches` - Make code async with Anthropic's async class
+- ✅ `async batches` - ~~Make code async with Anthropic's async class~~ (Completed)
 - `templates` - Refactor to move to another module
 - `LLMs` - Add support for more LLMs (Gemini, OpenAI)
+- `performance` - Add connection pooling and rate limiting optimizations
 
 ---
 

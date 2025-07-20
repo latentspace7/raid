@@ -7,6 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.54.0",
     "anyio>=4.9.0",
-    "praw>=7.8.1",
+    "google-genai>=1.25.0",
+    "asyncpraw>=7.8.1",
+    "aiohttp>=3.10.0",
+    "aiosmtplib>=3.0.0",
     "python-dotenv>=1.1.0",
 ]

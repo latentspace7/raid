@@ -1,38 +1,44 @@
-import httpx
 from dotenv import load_dotenv
 import os
-import praw
-from anthropic import Anthropic
+import asyncpraw
+from anthropic import AsyncAnthropic
 from datetime import datetime
-import smtplib
+import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from collections import defaultdict
 from typing import List, Dict, Any
+import asyncio
 from templates.email_template import generate_email_template
 
 load_dotenv()
 
-reddit = praw.Reddit(
-    client_id=os.getenv('CLIENT_ID'),
-    client_secret=os.getenv('CLIENT_SECRET'),
-    user_agent="news"
-)
 
-client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+async def get_reddit_client():
+    return asyncpraw.Reddit(
+        client_id=os.getenv('CLIENT_ID'),
+        client_secret=os.getenv('CLIENT_SECRET'),
+        user_agent="news"
+    )
+
+client = AsyncAnthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 
 
-def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3) -> List[Dict[str, Any]]:
-    """Fetch posts from multiple subreddits"""
-    all_posts = []
-    track_ids = []
-    for sub_name in subreddit_list:
+async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3) -> List[Dict[str, Any]]:
+    """Fetch posts from multiple subreddits asynchronously"""
+    reddit = await get_reddit_client()
+
+    async def fetch_subreddit_posts(sub_name: str) -> List[Dict[str, Any]]:
+        """Fetch posts from a single subreddit"""
+        posts = []
+        track_ids = []
+
         print(f"Fetching from r/{sub_name}...")
         try:
-            subreddit = reddit.subreddit(sub_name)
+            subreddit = await reddit.subreddit(sub_name)
 
-            for post in subreddit.hot(limit=posts_per_sub):
-
+            # Fetch hot posts
+            async for post in subreddit.hot(limit=posts_per_sub):
                 if not post.stickied and post.name not in track_ids:
                     post_info = {
                         'title': post.title,
@@ -55,10 +61,11 @@ def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3)
                         post_info['content_type'] = 'link'
                         post_info['content'] = f"External link to: {post.url}"
 
-                    all_posts.append(post_info)
+                    posts.append(post_info)
                     track_ids.append(post.name)
 
-            for post in subreddit.new(limit=3):
+            # Fetch new posts
+            async for post in subreddit.new(limit=3):
                 if not post.stickied and post.name not in track_ids:
                     post_info = {
                         'title': post.title,
@@ -81,12 +88,27 @@ def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3)
                         post_info['content_type'] = 'link'
                         post_info['content'] = f"External link to: {post.url}"
 
-                    all_posts.append(post_info)
+                    posts.append(post_info)
                     track_ids.append(post.name)
 
         except Exception as e:
             print(f"Error fetching r/{sub_name}: {e}")
 
+        return posts
+
+    # Fetch all subreddits concurrently
+    tasks = [fetch_subreddit_posts(sub_name) for sub_name in subreddit_list]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Flatten results and filter out exceptions
+    all_posts = []
+    for result in results:
+        if isinstance(result, list):
+            all_posts.extend(result)
+        elif isinstance(result, Exception):
+            print(f"Error in concurrent fetch: {result}")
+
+    await reddit.close()
     return all_posts
 
 
@@ -120,73 +142,47 @@ Posts to summarize:
 # If running with the Anthropic SDK
 
 
-def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
-    """Process posts in batches to handle large numbers"""
-    all_summaries = []
+async def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
+    """Process posts in batches asynchronously to handle large numbers"""
 
-    # Process in batches
-    for i in range(0, len(posts_data), batch_size):
-        batch = posts_data[i:i + batch_size]
-        batch_num = (i // batch_size) + 1
-        total_batches = (len(posts_data) + batch_size - 1) // batch_size
-
+    async def process_batch(batch: List[Dict[str, Any]], batch_num: int, total_batches: int) -> str:
+        """Process a single batch of posts"""
         print(f"Processing batch {batch_num}/{total_batches}...")
-
         prompt = create_summary_prompt_batch(batch, batch_num, total_batches)
 
         try:
-            response = client.messages.create(
+            response = await client.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=1000,
                 temperature=0.0,
                 messages=[{"role": "user", "content": prompt}]
             )
-            all_summaries.append(response.content[0].text)
+            return response.content[0].text
         except Exception as e:
             print(f"Error in batch {batch_num}: {str(e)}")
+            return ""
 
-    return "\n".join(all_summaries)
+    # Create tasks for all batches
+    tasks = []
+    for i in range(0, len(posts_data), batch_size):
+        batch = posts_data[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        total_batches = (len(posts_data) + batch_size - 1) // batch_size
+        tasks.append(process_batch(batch, batch_num, total_batches))
 
+    # Process all batches concurrently
+    all_summaries = await asyncio.gather(*tasks, return_exceptions=True)
 
-# LM studio for local inference using Llama3.2-1B
-# def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
-#     """Process posts in batches using LM Studio's local API via httpx."""
-#     all_summaries = []
+    # Filter out exceptions and empty strings
+    valid_summaries = []
+    for summary in all_summaries:
+        if isinstance(summary, str) and summary.strip():
+            valid_summaries.append(summary)
+        elif isinstance(summary, Exception):
+            print(f"Batch processing error: {summary}")
 
-#     api_url = "http://127.0.0.1:1234/v1/chat/completions"
-#     headers = {"Content-Type": "application/json"}
+    return "\n".join(valid_summaries)
 
-#     with httpx.Client(timeout=60.0) as client:
-#         for i in range(0, len(posts_data), batch_size):
-#             batch = posts_data[i:i + batch_size]
-#             batch_num = (i // batch_size) + 1
-#             total_batches = (len(posts_data) + batch_size - 1) // batch_size
-
-#             print(f"Processing batch {batch_num}/{total_batches}...")
-
-#             prompt = create_summary_prompt_batch(
-#                 batch, batch_num, total_batches)
-
-#             payload = {
-#                 "model": "meta-llama_-_llama-3.2-1b-instruct",
-#                 "messages": [
-#                     {"role": "system", "content": "You are a helpful assistant that summarizes user content."},
-#                     {"role": "user", "content": prompt}
-#                 ],
-#                 "temperature": 0.0,
-#                 "max_tokens": 2000,
-#                 "stream": False
-#             }
-
-#             try:
-#                 response = client.post(api_url, headers=headers, json=payload)
-#                 response.raise_for_status()
-#                 summary = response.json()["choices"][0]["message"]["content"]
-#                 all_summaries.append(summary)
-#             except httpx.HTTPError as e:
-#                 print(f"Error in batch {batch_num}: {str(e)}")
-
-#     return "\n".join(all_summaries)
 
 # If running with the Anthropic SDK
 def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
@@ -214,58 +210,6 @@ def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
 
     return posts
 
-# Parsing if using local inference
-# def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
-#     """Parse the summary into structured data - fixed for actual LLM output"""
-#     posts = []
-
-#     # Split by [SUBREDDIT: pattern to get individual post blocks
-#     sections = summary_text.split('[SUBREDDIT:')
-
-#     for section in sections[1:]:  # Skip first empty section
-#         try:
-#             # Extract subreddit (everything up to the first ]
-#             if ']' not in section:
-#                 continue
-
-#             lines = section.split('\n')
-#             subreddit = lines[0].split(']')[0].strip()
-
-#             # Find the title line
-#             title = ""
-#             link = ""
-#             summary = ""
-
-#             for line in lines:
-#                 if line.strip().startswith('[TITLE:'):
-#                     title = line.split('[TITLE:')[1].split(']')[0].strip()
-#                 elif line.strip().startswith('[LINK:'):
-#                     link = line.split('[LINK:')[1].split(']')[0].strip()
-#                 elif line.strip().startswith('[SUMMARY:'):
-#                     summary = line.split('[SUMMARY:')[1].split(']')[0].strip()
-
-#             # Only add if we have all required fields
-#             if subreddit and title and link and summary:
-#                 posts.append({
-#                     # Remove r/ prefix if present
-#                     'subreddit': subreddit.replace('r/', ''),
-#                     'title': title,
-#                     'link': link,
-#                     'summary': summary
-#                 })
-#                 print(f"✅ Parsed: {title[:50]}...")
-#             else:
-#                 print(
-#                     f"❌ Missing fields in section: subreddit='{subreddit}', title='{title}', link='{link}', summary='{summary}'")
-
-#         except Exception as e:
-#             print(f"❌ Error parsing section: {e}")
-#             print(f"Section content: {section[:200]}...")
-#             continue
-
-#     print(f"🎯 Successfully parsed {len(posts)} posts from summary text")
-#     return posts
-
 
 def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list: List[str], max_display: int = 15) -> str:
     """Create HTML email"""
@@ -279,28 +223,6 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
                          key=lambda x: len(x[1]), reverse=True)
 
     html = generate_email_template(posts_data, subreddit_list)
-
-    # TODO: intelligent top posts section
-    # Add top posts section if many posts
-    # if len(posts_data) > 10:
-    #     html += """
-    #         <div class="top-posts">
-    #             <h3>🔥 Top Highlights</h3>
-    #     """
-
-    #     for i, post in enumerate(posts_data[:5]):
-    #         html += f"""
-    #             <div class="post-item">
-    #                 <div class="post-title">
-    #                     <a href="{post['link']}" target="_blank">{i+1}. {post['title']}</a>
-    #                 </div>
-    #                 <div class="post-summary">{post['summary']}</div>
-    #             </div>
-    #         """
-
-    #     html += """
-    #         </div>
-    #     """
 
     # Add posts by subreddit
     html += """
@@ -360,10 +282,9 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
     return html
 
 
-def main() -> None:
+async def main() -> None:
 
-    subreddit_list = ["LocalLLaMA", "ClaudeAI", "modelcontextprotocol", "Anthropic", "GeminiAI", "OpenAI", "RooCode", "Rag", "agentdevelopmentkit", "singularity", "ArtificialInteligence", "GithubCopilot", "StableDiffusion",
-                      "FastAPI", "reactjs", "Python", "technology", "javascript"]
+    subreddit_list = ["LocalLLaMA", "reactjs", "Python", "javascript"]
 
     posts_per_subreddit = 6
 
@@ -374,7 +295,7 @@ def main() -> None:
     print(f"🔍 Fetching posts from: {', '.join(subreddit_list)}")
 
     #
-    posts = fetch_multiple_subreddits(
+    posts = await fetch_multiple_subreddits(
         subreddit_list, posts_per_sub=posts_per_subreddit)
 
     if not posts:
@@ -384,7 +305,7 @@ def main() -> None:
     print(f"✅ Fetched {len(posts)} total posts")
     print("🤖 Getting summaries...")
 
-    summary_text = get_llm_summaries_in_batches(posts, batch_size=10)
+    summary_text = await get_llm_summaries_in_batches(posts, batch_size=10)
 
     formatted_posts = parse_summaries(summary_text)
 
@@ -406,14 +327,14 @@ def main() -> None:
     subject = f"📊 Reddit Digest ({len(formatted_posts)} posts) - {datetime.now().strftime('%b %d')}"
 
     if from_email and from_password:
-        send_email(subject, html_email, plain_text,
-                   to_email, from_email, from_password)
+        await send_email(subject, html_email, plain_text,
+                         to_email, from_email, from_password)
     else:
         print("❌ Email credentials not found")
 
 
-def send_email(subject: str, html_body: str, plain_body: str, to_email: str, from_email: str, from_password: str) -> bool:
-    """Send email via Gmail SMTP"""
+async def send_email(subject: str, html_body: str, plain_body: str, to_email: str, from_email: str, from_password: str) -> bool:
+    """Send email via Gmail SMTP asynchronously"""
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
@@ -425,11 +346,14 @@ def send_email(subject: str, html_body: str, plain_body: str, to_email: str, fro
         msg.attach(part1)
         msg.attach(part2)
 
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(from_email, from_password)
-        server.send_message(msg)
-        server.quit()
+        await aiosmtplib.send(
+            msg,
+            hostname='smtp.gmail.com',
+            port=587,
+            start_tls=True,
+            username=from_email,
+            password=from_password,
+        )
 
         print(f"✅ Email sent successfully to {to_email}")
         return True
@@ -440,4 +364,4 @@ def send_email(subject: str, html_body: str, plain_body: str, to_email: str, fro
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
