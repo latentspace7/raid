@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+# Export FastAPI app as Vercel handler
+handler = app
 
 
 @app.get("/digest")
