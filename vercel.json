@@ -1,7 +1,6 @@
 {
   "version": 2,
   "installCommand": "pip install -r requirements.txt",
-  "runtime": "python3.12",
   "builds": [
     {
       "src": "src/app.py",
