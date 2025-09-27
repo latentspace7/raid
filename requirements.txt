@@ -148,6 +148,7 @@ uvicorn==0.37.0
 websockets==15.0.1
     # via google-genai
 yarl==1.20.1
+mangum==0.17.0
     # via
     #   aiohttp
     #   asyncprawcore
