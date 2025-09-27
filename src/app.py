@@ -3,12 +3,10 @@ from fastapi.responses import JSONResponse
 from .raid import fetch_multiple_subreddits, get_llm_summaries_in_batches, parse_summaries, create_condensed_html_email, send_email
 import os
 from dotenv import load_dotenv
-from mangum import Mangum
 
 load_dotenv()
 
 app = FastAPI()
-handler = Mangum(app)
 
 
 @app.get("/digest")
