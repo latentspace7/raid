@@ -1,4 +1,4 @@
-from templates.email_template import generate_email_template
+from .templates.email_template import generate_email_template
 import asyncio
 from typing import List, Dict, Any
 from collections import defaultdict

@@ -11,6 +11,7 @@ A Python application that automatically fetches posts from multiple subreddits o
 - ⚡ **Asynchronous Processing**: Efficiently handles large numbers of posts with async/await
 - 🚀 **Concurrent Operations**: Fetches subreddits and processes AI summaries in parallel
 - 📊 **Smart Organization**: Groups posts by subreddit with statistics
+- ☁️ **Vercel Deployment**: Ready for deployment to Vercel with zero configuration
 
 ## 🚀 Quick Start
 
@@ -74,6 +75,12 @@ python src/main.py
 
 > **Note**: The application now runs fully asynchronously for improved performance and concurrent processing of Reddit posts and AI summaries.
 
+### Deploying to Vercel
+
+The application is configured for Vercel deployment with the included `vercel.json` file. Simply connect your GitHub repository to Vercel and deploy - no additional configuration needed.
+
+> **Note**: The `start_fastapi.sh` script is only needed for local development and is not required for Vercel deployment.
+
 ## 🔧 Configuration
 
 ### Customizing Subreddits
@@ -114,11 +121,13 @@ html_email = create_condensed_html_email(
 3. Choose "script" as the app type
 4. Note down your `client_id` and `client_secret`
 
-### OpenAI API
+### OpenAI Compatible API
 
-1. Visit [OpenAI Console](https://platform.openai.com/)
-2. Sign up/login and navigate to API keys
-3. Create a new API key
+The application uses any OpenAI compatible API. Currently it's configured to use GPT-120B OSS with Hugging Face inference providers.
+
+1. Obtain an API key from your preferred OpenAI compatible service
+2. For Hugging Face inference, visit [Hugging Face](https://huggingface.co/)
+3. Sign up/login and navigate to your account settings to create an API key
 4. Ensure your API key has sufficient credits for API usage
 
 ### Gmail App Password
