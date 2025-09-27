@@ -1,43 +1,46 @@
-from dotenv import load_dotenv
+from src.templates.email_template import generate_email_template
+import asyncio
+from typing import List, Dict, Any
+from collections import defaultdict
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import aiosmtplib
+from datetime import datetime
 import os
 import asyncpraw
-from anthropic import AsyncAnthropic
-from datetime import datetime
-import aiosmtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from collections import defaultdict
-from typing import List, Dict, Any
-import asyncio
-from templates.email_template import generate_email_template
+from openai import OpenAI
+from dotenv import load_dotenv
 
 load_dotenv()
 
+# Using Hugging Face with OpenAI compatible API
+client = OpenAI(
+    base_url="https://router.huggingface.co/v1",
+    api_key=os.getenv("HF_TOKEN"),
+)
+
 
 async def get_reddit_client():
+    """Create an async Reddit client using asyncpraw."""
     return asyncpraw.Reddit(
         client_id=os.getenv('CLIENT_ID'),
         client_secret=os.getenv('CLIENT_SECRET'),
         user_agent="news"
     )
 
-client = AsyncAnthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
-
 
 async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3) -> List[Dict[str, Any]]:
-    """Fetch posts from multiple subreddits asynchronously"""
+    """Fetch posts from multiple subreddits asynchronously."""
     reddit = await get_reddit_client()
 
     async def fetch_subreddit_posts(sub_name: str) -> List[Dict[str, Any]]:
-        """Fetch posts from a single subreddit"""
         posts = []
         track_ids = []
-
         print(f"Fetching from r/{sub_name}...")
         try:
             subreddit = await reddit.subreddit(sub_name)
 
-            # Fetch hot posts
+            # Hot posts
             async for post in subreddit.hot(limit=posts_per_sub):
                 if not post.stickied and post.name not in track_ids:
                     post_info = {
@@ -53,18 +56,16 @@ async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: in
                         'selftext': post.selftext if post.is_self else '',
                         'upvote_ratio': post.upvote_ratio
                     }
-
                     if post.is_self:
                         post_info['content_type'] = 'text'
                         post_info['content'] = post.selftext
                     else:
                         post_info['content_type'] = 'link'
                         post_info['content'] = f"External link to: {post.url}"
-
                     posts.append(post_info)
                     track_ids.append(post.name)
 
-            # Fetch new posts
+            # New posts
             async for post in subreddit.new(limit=3):
                 if not post.stickied and post.name not in track_ids:
                     post_info = {
@@ -80,27 +81,21 @@ async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: in
                         'selftext': post.selftext if post.is_self else '',
                         'upvote_ratio': post.upvote_ratio
                     }
-
                     if post.is_self:
                         post_info['content_type'] = 'text'
                         post_info['content'] = post.selftext
                     else:
                         post_info['content_type'] = 'link'
                         post_info['content'] = f"External link to: {post.url}"
-
                     posts.append(post_info)
                     track_ids.append(post.name)
-
         except Exception as e:
             print(f"Error fetching r/{sub_name}: {e}")
-
         return posts
 
-    # Fetch all subreddits concurrently
-    tasks = [fetch_subreddit_posts(sub_name) for sub_name in subreddit_list]
+    tasks = [fetch_subreddit_posts(name) for name in subreddit_list]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Flatten results and filter out exceptions
     all_posts = []
     for result in results:
         if isinstance(result, list):
@@ -113,7 +108,7 @@ async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: in
 
 
 def create_summary_prompt_batch(posts_batch: List[Dict[str, Any]], batch_num: int, total_batches: int) -> str:
-    """Create a prompt for a batch of posts"""
+    """Create a prompt for a batch of posts."""
     prompt = f"""You are creating a Reddit digest email (batch {batch_num} of {total_batches}).
 Summarize these {len(posts_batch)} posts concisely. Each summary should be 1-2 sentences maximum.
 
@@ -127,7 +122,6 @@ Format EXACTLY as follows for parsing:
 
 Posts to summarize:
 """
-
     for i, post in enumerate(posts_batch, 1):
         prompt += f"\nPOST {i}:\n"
         prompt += f"Subreddit: r/{post['subreddit']}\n"
@@ -136,33 +130,49 @@ Posts to summarize:
         prompt += f"Content: {post['content'][:500]}...\n"
         prompt += f"Link: {post['permalink']}\n"
         prompt += "-" * 30 + "\n"
-
     return prompt
-
-# If running with the Anthropic SDK
 
 
 async def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
-    """Process posts in batches asynchronously to handle large numbers"""
-
+    """Process posts in batches asynchronously using OpenAI compatible API."""
     async def process_batch(batch: List[Dict[str, Any]], batch_num: int, total_batches: int) -> str:
-        """Process a single batch of posts"""
         print(f"Processing batch {batch_num}/{total_batches}...")
         prompt = create_summary_prompt_batch(batch, batch_num, total_batches)
-
         try:
-            response = await client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1000,
+            # Use the OpenAI module-level ChatCompletion API.
+            # Note: openai library performs synchronous calls; to keep async flow we run it in a thread executor.
+            import asyncio
+
+            # Helper to call the OpenAI client’s chat completion API within async code
+            async def _create_chat_completion(model: str, messages: list, temperature: float, max_tokens: int):
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(
+                    None,
+                    lambda: client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                )
+
+            response = await _create_chat_completion(
+                model="openai/gpt-oss-120b",
+                messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
-                messages=[{"role": "user", "content": prompt}]
+                max_tokens=8000,
             )
-            return response.content[0].text
+            # OpenAI returns a list of choices; we take the first.
+            # Extract the content from the stubbed response dict
+            # Access the content of the first choice in the chat completion response
+            content = response.choices[0].message.content
+            if content is None:
+                raise ValueError("Received None as response content")
+            return content
         except Exception as e:
             print(f"Error in batch {batch_num}: {str(e)}")
             return ""
 
-    # Create tasks for all batches
     tasks = []
     for i in range(0, len(posts_data), batch_size):
         batch = posts_data[i:i + batch_size]
@@ -170,10 +180,8 @@ async def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_s
         total_batches = (len(posts_data) + batch_size - 1) // batch_size
         tasks.append(process_batch(batch, batch_num, total_batches))
 
-    # Process all batches concurrently
     all_summaries = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Filter out exceptions and empty strings
     valid_summaries = []
     for summary in all_summaries:
         if isinstance(summary, str) and summary.strip():
@@ -184,11 +192,9 @@ async def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_s
     return "\n".join(valid_summaries)
 
 
-# If running with the Anthropic SDK
 def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
-    """Parse the summary into structured data"""
+    """Parse the LLM summary text into structured data."""
     posts = []
-
     for post_section in summary_text.split('[END]'):
         if '[SUBREDDIT:' in post_section:
             try:
@@ -198,23 +204,19 @@ def parse_summaries(summary_text: str) -> List[Dict[str, str]]:
                 link = post_section.split('[LINK:')[1].split(']')[0].strip()
                 summary = post_section.split(
                     '[SUMMARY:')[1].split(']')[0].strip()
-
                 posts.append({
                     'subreddit': subreddit,
                     'title': title,
                     'link': link,
                     'summary': summary
                 })
-            except:
+            except Exception:
                 continue
-
     return posts
 
 
 def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list: List[str], max_display: int = 15) -> str:
-    """Create HTML email"""
-
-    # Group posts by subreddit
+    """Create HTML email from parsed summaries."""
     posts_by_sub = defaultdict(list)
     for post in posts_data:
         posts_by_sub[post['subreddit']].append(post)
@@ -224,9 +226,8 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
 
     html = generate_email_template(posts_data, subreddit_list)
 
-    # Add posts by subreddit
     html += """
-            <h3 style="margin: 20px 20px 10px 20px; font-size: 18px;">📑 All Posts by Subreddit</h3>
+        <h3 style="margin: 20px 20px 10px 20px; font-size: 18px;">📑 All Posts by Subreddit</h3>
     """
 
     posts_shown = 0
@@ -234,10 +235,10 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
         if posts_shown >= max_display and len(posts_data) > max_display:
             remaining = len(posts_data) - posts_shown
             html += f"""
-            <div class="view-more">
-                <p>📄 {remaining} more posts not shown to keep email readable</p>
-                <a href="https://reddit.com/r/{'+'.join(subreddit_list)}" target="_blank">View all on Reddit →</a>
-            </div>
+                <div class="view-more">
+                    <p>📄 {remaining} more posts not shown to keep email readable</p>
+                    <a href="https://reddit.com/r/{'+'.join(subreddit_list)}" target="_blank">View all on Reddit →</a>
+                </div>
             """
             break
 
@@ -252,12 +253,12 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
 
         for post in posts[:5]:
             html += f"""
-                    <div class="post-item">
-                        <div class="post-title">
-                            <a href="{post['link']}" target="_blank">{post['title']}</a>
-                        </div>
-                        <div class="post-summary">{post['summary']}</div>
+                <div class="post-item">
+                    <div class="post-title">
+                        <a href="{post['link']}" target="_blank">{post['title']}</a>
                     </div>
+                    <div class="post-summary">{post['summary']}</div>
+                </div>
             """
             posts_shown += 1
 
@@ -266,25 +267,25 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
             </div>
         """
 
-    # Footer
     html += """
-            <div class="footer">
-                <p>This digest was automatically generated using Reddit API and Claude AI</p>
-                <p style="margin-top: 10px;">
-                    <a href="https://reddit.com">Visit Reddit</a> •
-                </p>
-            </div>
+        <div class="footer">
+            <p>This digest was automatically generated using Reddit API and OpenAI LLM</p>
+            <p style="margin-top: 10px;">
+                <a href="https://reddit.com">Visit Reddit</a> •
+            </p>
         </div>
-    </body>
-    </html>
+    </div>
+</body>
+</html>
     """
 
     return html
 
 
 async def main() -> None:
-
-    subreddit_list = ["LocalLLaMA", "reactjs", "Python", "javascript"]
+    subreddit_list = [
+        "LocalLLaMA", "reactjs", "Python", "javascript"
+    ]
 
     posts_per_subreddit = 6
 
@@ -294,9 +295,7 @@ async def main() -> None:
 
     print(f"🔍 Fetching posts from: {', '.join(subreddit_list)}")
 
-    #
-    posts = await fetch_multiple_subreddits(
-        subreddit_list, posts_per_sub=posts_per_subreddit)
+    posts = await fetch_multiple_subreddits(subreddit_list, posts_per_sub=posts_per_subreddit)
 
     if not posts:
         print("❌ No posts fetched!")
@@ -327,14 +326,13 @@ async def main() -> None:
     subject = f"📊 Reddit Digest ({len(formatted_posts)} posts) - {datetime.now().strftime('%b %d')}"
 
     if from_email and from_password:
-        await send_email(subject, html_email, plain_text,
-                         to_email, from_email, from_password)
+        await send_email(subject, html_email, plain_text, to_email, from_email, from_password)
     else:
         print("❌ Email credentials not found")
 
 
 async def send_email(subject: str, html_body: str, plain_body: str, to_email: str, from_email: str, from_password: str) -> bool:
-    """Send email via Gmail SMTP asynchronously"""
+    """Send email via Gmail SMTP asynchronously."""
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
@@ -357,11 +355,9 @@ async def send_email(subject: str, html_body: str, plain_body: str, to_email: st
 
         print(f"✅ Email sent successfully to {to_email}")
         return True
-
     except Exception as e:
         print(f"❌ Error sending email: {str(e)}")
         return False
-
 
 if __name__ == "__main__":
     asyncio.run(main())

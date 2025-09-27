@@ -1,11 +1,11 @@
 # 📰 Reddit AI Digest
 
-A Python application that automatically fetches posts from multiple subreddits of your choosing, generates AI-powered summaries using Claude AI, and sends beautifully formatted email digests to your email.
+A Python application that automatically fetches posts from multiple subreddits of your choosing, generates AI-powered summaries using any OpenAI-compatible model (currently using GPT-120B OSS with Hugging Face inference providers), and sends beautifully formatted email digests to your email.
 
 ## ✨ Features
 
 - 🔍 **Multi-Subreddit Fetching**: Collects posts from multiple subreddits simultaneously
-- 🤖 **AI-Powered Summaries**: Uses Claude AI to create concise, intelligent summaries
+- 🤖 **AI-Powered Summaries**: Uses any OpenAI-compatible model to create concise, intelligent summaries
 - 📧 **Email Delivery**: Sends HTML and plain text email digests via Gmail SMTP
 - 🎨 **Beautiful HTML Templates**: Modern, responsive email design
 - ⚡ **Asynchronous Processing**: Efficiently handles large numbers of posts with async/await
@@ -19,7 +19,7 @@ A Python application that automatically fetches posts from multiple subreddits o
 - Python 3.12 or higher
 - [uv](https://docs.astral.sh/uv/) package manager (recommended) or pip
 - Reddit API credentials
-- Claude AI API key
+- OpenAI-compatible API key (currently using GPT-120B OSS with Hugging Face inference providers)
 - Gmail account with app password setup
 
 ### Installation
@@ -55,8 +55,6 @@ A Python application that automatically fetches posts from multiple subreddits o
    CLIENT_ID=your_reddit_client_id
    CLIENT_SECRET=your_reddit_client_secret
    
-   # Claude AI API key (get from https://console.anthropic.com/)
-   ANTHROPIC_API_KEY=your_claude_api_key
    
    # Gmail credentials
    GMAIL_EMAIL=your_email@gmail.com
@@ -116,12 +114,12 @@ html_email = create_condensed_html_email(
 3. Choose "script" as the app type
 4. Note down your `client_id` and `client_secret`
 
-### Claude AI API
+### OpenAI API
 
-1. Visit [Anthropic Console](https://console.anthropic.com/)
+1. Visit [OpenAI Console](https://platform.openai.com/)
 2. Sign up/login and navigate to API keys
 3. Create a new API key
-4. Add credits to your account for API usage
+4. Ensure your API key has sufficient credits for API usage
 
 ### Gmail App Password
 
@@ -133,7 +131,7 @@ html_email = create_condensed_html_email(
 ## 🎯 How It Works
 
 1. **Fetch Posts**: The app connects to Reddit API and concurrently fetches recent posts from multiple subreddits using async operations
-2. **AI Processing**: Posts are sent to Claude AI in parallel batches for intelligent summarization using async API calls
+2. **AI Processing**: Posts are sent to the OpenAI-compatible model in parallel batches for intelligent summarization using async API calls
 3. **Email Generation**: Creates both HTML and plain text versions of the digest
 4. **Delivery**: Sends the formatted email via Gmail SMTP using async email delivery
 
@@ -152,7 +150,7 @@ Modify `src/templates/email_template.py` to customize the email appearance:
 The application uses modern async/await patterns for concurency:
 
 - **Concurrent Subreddit Fetching**: All subreddits are fetched simultaneously using `asyncio.gather()`
-- **Parallel AI Processing**: Claude AI requests are batched and processed concurrently
+- **Parallel AI Processing**: OpenAI-compatible model requests are batched and processed concurrently
 - **Async Email Delivery**: Non-blocking email sending using `aiosmtplib`
 - **Efficient Resource Usage**: Proper connection management and cleanup
 
@@ -172,10 +170,6 @@ The application uses modern async/await patterns for concurency:
 - Check rate limits (Reddit API has usage limits)
 - Ensure subreddit names are spelled correctly
 
-**Claude AI errors:**
-- Verify API key is valid and has credits
-- Check rate limits for your plan
-- Ensure posts aren't too long (API has token limits)
 
 ### Debug Mode
 
@@ -191,7 +185,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 The application requires the following Python packages:
 
-- `anthropic>=0.54.0` - Claude AI async API client
+- `transformers>=4.28.0` - Hugging Face Transformers library for OpenAI models
+- `transformers>=4.28.0` - Hugging Face Transformers library for OpenAI models
 - `asyncpraw>=7.8.1` - Async Reddit API wrapper
 - `aiosmtplib>=3.0.0` - Async SMTP email client
 - `python-dotenv>=1.1.0` - Environment variable management
@@ -205,4 +200,4 @@ The application requires the following Python packages:
 
 ---
 
-**Made with ❤️ using Reddit API and Claude AI**
+**Made with ❤️ using Reddit API and OpenAI-compatible models**
