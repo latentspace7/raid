@@ -1,4 +1,4 @@
-from .templates.email_template import generate_email_template
+from templates.email_template import generate_email_template
 import asyncio
 from typing import List, Dict, Any
 from collections import defaultdict
@@ -8,15 +8,15 @@ import aiosmtplib
 from datetime import datetime
 import os
 import asyncpraw
-from openai import OpenAI
+from openai import AsyncOpenAI
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
-# Using Hugging Face with OpenAI compatible API
-client = OpenAI(
-    base_url="https://router.huggingface.co/v1",
-    api_key=os.getenv("HF_TOKEN"),
+# OpenAI API client
+client = AsyncOpenAI(
+    api_key=os.getenv("OPEN_AI_TOKEN"),
 )
 
 
@@ -133,41 +133,24 @@ Posts to summarize:
     return prompt
 
 
-async def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 10) -> str:
+async def get_llm_summaries_in_batches(posts_data: List[Dict[str, Any]], batch_size: int = 15) -> str:
     """Process posts in batches asynchronously using OpenAI compatible API."""
     async def process_batch(batch: List[Dict[str, Any]], batch_num: int, total_batches: int) -> str:
+        start_time = time.time()
         print(f"Processing batch {batch_num}/{total_batches}...")
         prompt = create_summary_prompt_batch(batch, batch_num, total_batches)
         try:
-            # Use the OpenAI module-level ChatCompletion API.
-            # Note: openai library performs synchronous calls; to keep async flow we run it in a thread executor.
-            import asyncio
-
-            # Helper to call the OpenAI client’s chat completion API within async code
-            async def _create_chat_completion(model: str, messages: list, temperature: float, max_tokens: int):
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(
-                    None,
-                    lambda: client.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
-                )
-
-            response = await _create_chat_completion(
-                model="openai/gpt-oss-120b",
+            response = await client.chat.completions.create(
+                model="gpt-5-nano-2025-08-07",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,
-                max_tokens=8000,
+                temperature=1                
             )
-            # OpenAI returns a list of choices; we take the first.
-            # Extract the content from the stubbed response dict
-            # Access the content of the first choice in the chat completion response
+            
             content = response.choices[0].message.content
             if content is None:
                 raise ValueError("Received None as response content")
+            elapsed = time.time() - start_time
+            print(f"✅ Batch {batch_num} completed in {elapsed:.1f}s")
             return content
         except Exception as e:
             print(f"Error in batch {batch_num}: {str(e)}")
@@ -284,7 +267,7 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
 
 async def main() -> None:
     subreddit_list = [
-        "LocalLLaMA", "reactjs", "Python", "javascript"
+        "LocalLLaMA", "AI_Agents", "Python", "ClaudeAI", "artificial", "GeminiAI", "mcp", "PromptEngineering", "OpenAI", "Rag","aiagents", "AiAutomations"
     ]
 
     posts_per_subreddit = 6
@@ -295,16 +278,21 @@ async def main() -> None:
 
     print(f"🔍 Fetching posts from: {', '.join(subreddit_list)}")
 
+    fetch_start = time.time()
     posts = await fetch_multiple_subreddits(subreddit_list, posts_per_sub=posts_per_subreddit)
+    fetch_time = time.time() - fetch_start
 
     if not posts:
         print("❌ No posts fetched!")
         return
 
-    print(f"✅ Fetched {len(posts)} total posts")
+    print(f"✅ Fetched {len(posts)} total posts in {fetch_time:.1f}s")
     print("🤖 Getting summaries...")
 
-    summary_text = await get_llm_summaries_in_batches(posts, batch_size=10)
+    summary_start = time.time()
+    summary_text = await get_llm_summaries_in_batches(posts, batch_size=15)
+    summary_time = time.time() - summary_start
+    print(f"✅ Summaries completed in {summary_time:.1f}s")
 
     formatted_posts = parse_summaries(summary_text)
 

@@ -3,4 +3,4 @@ set -e
 
 . .venv/bin/activate
 
-python ./src/main.py
+python3 ./src/raid.py

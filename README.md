@@ -1,6 +1,6 @@
 # 📰 Reddit AI Digest
 
-A Python application that automatically fetches posts from multiple subreddits of your choosing, generates AI-powered summaries using any OpenAI-compatible model (currently using GPT-120B OSS with Hugging Face inference providers), and sends beautifully formatted email digests to your email.
+A Python application that automatically fetches posts from multiple subreddits of your choosing, generates AI-powered summaries using any OpenAI-compatible API, and sends beautifully formatted email digests to your email.
 
 ## ✨ Features
 
@@ -20,7 +20,7 @@ A Python application that automatically fetches posts from multiple subreddits o
 - Python 3.12 or higher
 - [uv](https://docs.astral.sh/uv/) package manager (recommended) or pip
 - Reddit API credentials
-- OpenAI-compatible API key (currently using GPT-120B OSS with Hugging Face inference providers)
+- OpenAI API key (or any OpenAI-compatible API)
 - Gmail account with app password setup
 
 ### Installation
@@ -67,10 +67,10 @@ A Python application that automatically fetches posts from multiple subreddits o
 
 ```bash
 # Using uv
-uv run src/main.py
+uv run src/raid.py
 
 # Using Python directly
-python src/main.py
+python src/raid.py
 ```
 
 > **Note**: The application now runs fully asynchronously for improved performance and concurrent processing of Reddit posts and AI summaries.
@@ -85,7 +85,7 @@ The application is configured for Vercel deployment with the included `vercel.js
 
 ### Customizing Subreddits
 
-Edit the `subreddit_list` in `src/main.py`:
+Edit the `subreddit_list` in `src/raid.py`:
 
 ```python
 subreddit_list = [
@@ -121,13 +121,13 @@ html_email = create_condensed_html_email(
 3. Choose "script" as the app type
 4. Note down your `client_id` and `client_secret`
 
-### OpenAI Compatible API
+### OpenAI API
 
-The application uses any OpenAI compatible API. Currently it's configured to use GPT-120B OSS with Hugging Face inference providers.
+The application uses the OpenAI API (or any OpenAI-compatible API).
 
-1. Obtain an API key from your preferred OpenAI compatible service
-2. For Hugging Face inference, visit [Hugging Face](https://huggingface.co/)
-3. Sign up/login and navigate to your account settings to create an API key
+1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Sign up/login and create an API key
+3. Add the key to your `.env` file as `OPEN_AI_TOKEN`
 4. Ensure your API key has sufficient credits for API usage
 
 ### Gmail App Password
@@ -194,8 +194,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 The application requires the following Python packages:
 
-- `transformers>=4.28.0` - Hugging Face Transformers library for OpenAI models
-- `transformers>=4.28.0` - Hugging Face Transformers library for OpenAI models
+- `openai>=1.0.0` - OpenAI API client
 - `asyncpraw>=7.8.1` - Async Reddit API wrapper
 - `aiosmtplib>=3.0.0` - Async SMTP email client
 - `python-dotenv>=1.1.0` - Environment variable management
