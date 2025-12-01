@@ -29,19 +29,26 @@ async def get_reddit_client():
     )
 
 
-async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3) -> List[Dict[str, Any]]:
+async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: int = 3, sort_type: str = 'hot') -> List[Dict[str, Any]]:
     """Fetch posts from multiple subreddits asynchronously."""
     reddit = await get_reddit_client()
 
     async def fetch_subreddit_posts(sub_name: str) -> List[Dict[str, Any]]:
         posts = []
         track_ids = []
-        print(f"Fetching from r/{sub_name}...")
+        print(f"Fetching {sort_type} posts from r/{sub_name}...")
         try:
             subreddit = await reddit.subreddit(sub_name)
+            
+            # Fetch posts based on sort_type
+            if sort_type == 'hot':
+                post_generator = subreddit.hot(limit=posts_per_sub)
+            elif sort_type == 'rising':
+                post_generator = subreddit.rising(limit=posts_per_sub)
+            else:
+                post_generator = subreddit.hot(limit=posts_per_sub)
 
-            # Hot posts
-            async for post in subreddit.hot(limit=posts_per_sub):
+            async for post in post_generator:
                 if not post.stickied and post.name not in track_ids:
                     post_info = {
                         'title': post.title,
@@ -65,30 +72,31 @@ async def fetch_multiple_subreddits(subreddit_list: List[str], posts_per_sub: in
                     posts.append(post_info)
                     track_ids.append(post.name)
 
-            # New posts
-            async for post in subreddit.new(limit=3):
-                if not post.stickied and post.name not in track_ids:
-                    post_info = {
-                        'title': post.title,
-                        'author': str(post.author) if post.author else '[deleted]',
-                        'score': post.score,
-                        'num_comments': post.num_comments,
-                        'created_utc': post.created_utc,
-                        'subreddit': str(post.subreddit),
-                        'permalink': f"https://reddit.com{post.permalink}",
-                        'url': post.url,
-                        'is_self': post.is_self,
-                        'selftext': post.selftext if post.is_self else '',
-                        'upvote_ratio': post.upvote_ratio
-                    }
-                    if post.is_self:
-                        post_info['content_type'] = 'text'
-                        post_info['content'] = post.selftext
-                    else:
-                        post_info['content_type'] = 'link'
-                        post_info['content'] = f"External link to: {post.url}"
-                    posts.append(post_info)
-                    track_ids.append(post.name)
+            # New posts (only for hot sort type to maintain existing behavior)
+            if sort_type == 'hot':
+                async for post in subreddit.new(limit=3):
+                    if not post.stickied and post.name not in track_ids:
+                        post_info = {
+                            'title': post.title,
+                            'author': str(post.author) if post.author else '[deleted]',
+                            'score': post.score,
+                            'num_comments': post.num_comments,
+                            'created_utc': post.created_utc,
+                            'subreddit': str(post.subreddit),
+                            'permalink': f"https://reddit.com{post.permalink}",
+                            'url': post.url,
+                            'is_self': post.is_self,
+                            'selftext': post.selftext if post.is_self else '',
+                            'upvote_ratio': post.upvote_ratio
+                        }
+                        if post.is_self:
+                            post_info['content_type'] = 'text'
+                            post_info['content'] = post.selftext
+                        else:
+                            post_info['content_type'] = 'link'
+                            post_info['content'] = f"External link to: {post.url}"
+                        posts.append(post_info)
+                        track_ids.append(post.name)
         except Exception as e:
             print(f"Error fetching r/{sub_name}: {e}")
         return posts
@@ -267,7 +275,7 @@ def create_condensed_html_email(posts_data: List[Dict[str, str]], subreddit_list
 
 async def main() -> None:
     subreddit_list = [
-        "LocalLLaMA", "AI_Agents", "Python", "ClaudeAI", "artificial", "GeminiAI", "mcp", "PromptEngineering", "OpenAI", "Rag","aiagents", "AiAutomations"
+       "MetaforDevelopers", "LanguageTechnology", "LocalLLaMA", "AI_Agents", "Python", "ClaudeAI", "artificial", "GeminiAI", "mcp", "PromptEngineering", "OpenAI", "Rag","aiagents", "AiAutomations"
     ]
 
     posts_per_subreddit = 6
@@ -276,47 +284,89 @@ async def main() -> None:
     from_email = os.getenv('GMAIL_EMAIL')
     from_password = os.getenv('GMAIL_APP_PASSWORD')
 
-    print(f"🔍 Fetching posts from: {', '.join(subreddit_list)}")
-
-    fetch_start = time.time()
-    posts = await fetch_multiple_subreddits(subreddit_list, posts_per_sub=posts_per_subreddit)
-    fetch_time = time.time() - fetch_start
-
-    if not posts:
-        print("❌ No posts fetched!")
+    if not from_email or not from_password:
+        print("❌ Email credentials not found")
         return
 
-    print(f"✅ Fetched {len(posts)} total posts in {fetch_time:.1f}s")
-    print("🤖 Getting summaries...")
+    # Process HOT posts
+    print(f"\n🔥 FETCHING HOT POSTS")
+    print(f"🔍 Fetching hot posts from: {', '.join(subreddit_list)}")
 
-    summary_start = time.time()
-    summary_text = await get_llm_summaries_in_batches(posts, batch_size=15)
-    summary_time = time.time() - summary_start
-    print(f"✅ Summaries completed in {summary_time:.1f}s")
+    fetch_start = time.time()
+    hot_posts = await fetch_multiple_subreddits(subreddit_list, posts_per_sub=posts_per_subreddit, sort_type='hot')
+    fetch_time = time.time() - fetch_start
 
-    formatted_posts = parse_summaries(summary_text)
+    if hot_posts:
+        print(f"✅ Fetched {len(hot_posts)} hot posts in {fetch_time:.1f}s")
+        print("🤖 Getting summaries for hot posts...")
 
-    html_email = create_condensed_html_email(
-        formatted_posts, subreddit_list, max_display=100)
+        summary_start = time.time()
+        summary_text = await get_llm_summaries_in_batches(hot_posts, batch_size=15)
+        summary_time = time.time() - summary_start
+        print(f"✅ Summaries completed in {summary_time:.1f}s")
 
-    plain_text = f"Reddit Digest - {datetime.now().strftime('%Y-%m-%d')}\n\n"
-    plain_text += f"Total posts: {len(formatted_posts)} from {len(subreddit_list)} subreddits\n"
-    plain_text += "=" * 60 + "\n\n"
+        formatted_posts = parse_summaries(summary_text)
 
-    for post in formatted_posts[:15]:
-        plain_text += f"[r/{post['subreddit']}] {post['title']}\n"
-        plain_text += f"{post['summary']}\n"
-        plain_text += f"Link: {post['link']}\n\n"
+        html_email = create_condensed_html_email(
+            formatted_posts, subreddit_list, max_display=100)
 
-    if len(formatted_posts) > 15:
-        plain_text += f"\n... and {len(formatted_posts) - 15} more posts"
+        plain_text = f"Reddit Digest (HOT) - {datetime.now().strftime('%Y-%m-%d')}\n\n"
+        plain_text += f"Total posts: {len(formatted_posts)} from {len(subreddit_list)} subreddits\n"
+        plain_text += "=" * 60 + "\n\n"
 
-    subject = f"📊 Reddit Digest ({len(formatted_posts)} posts) - {datetime.now().strftime('%b %d')}"
+        for post in formatted_posts[:15]:
+            plain_text += f"[r/{post['subreddit']}] {post['title']}\n"
+            plain_text += f"{post['summary']}\n"
+            plain_text += f"Link: {post['link']}\n\n"
 
-    if from_email and from_password:
+        if len(formatted_posts) > 15:
+            plain_text += f"\n... and {len(formatted_posts) - 15} more posts"
+
+        subject = f"🔥 Reddit Digest - HOT ({len(formatted_posts)} posts) - {datetime.now().strftime('%b %d')}"
+
         await send_email(subject, html_email, plain_text, to_email, from_email, from_password)
     else:
-        print("❌ Email credentials not found")
+        print("❌ No hot posts fetched!")
+
+    # Process rising posts
+    print(f"\n⭐ FETCHING rising POSTS")
+    print(f"🔍 Fetching rising posts from: {', '.join(subreddit_list)}")
+
+    fetch_start = time.time()
+    rising_posts = await fetch_multiple_subreddits(subreddit_list, posts_per_sub=posts_per_subreddit, sort_type='rising')
+    fetch_time = time.time() - fetch_start
+
+    if rising_posts:
+        print(f"✅ Fetched {len(rising_posts)} rising posts in {fetch_time:.1f}s")
+        print("🤖 Getting summaries for rising posts...")
+
+        summary_start = time.time()
+        summary_text = await get_llm_summaries_in_batches(rising_posts, batch_size=15)
+        summary_time = time.time() - summary_start
+        print(f"✅ Summaries completed in {summary_time:.1f}s")
+
+        formatted_posts = parse_summaries(summary_text)
+
+        html_email = create_condensed_html_email(
+            formatted_posts, subreddit_list, max_display=100)
+
+        plain_text = f"Reddit Digest (rising) - {datetime.now().strftime('%Y-%m-%d')}\n\n"
+        plain_text += f"Total posts: {len(formatted_posts)} from {len(subreddit_list)} subreddits\n"
+        plain_text += "=" * 60 + "\n\n"
+
+        for post in formatted_posts[:15]:
+            plain_text += f"[r/{post['subreddit']}] {post['title']}\n"
+            plain_text += f"{post['summary']}\n"
+            plain_text += f"Link: {post['link']}\n\n"
+
+        if len(formatted_posts) > 15:
+            plain_text += f"\n... and {len(formatted_posts) - 15} more posts"
+
+        subject = f"⭐ Reddit Digest - rising ({len(formatted_posts)} posts) - {datetime.now().strftime('%b %d')}"
+
+        await send_email(subject, html_email, plain_text, to_email, from_email, from_password)
+    else:
+        print("❌ No rising posts fetched!")
 
 
 async def send_email(subject: str, html_body: str, plain_body: str, to_email: str, from_email: str, from_password: str) -> bool:
