@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-. .venv/bin/activate
-
-python3 ./src/raid.py
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+exec uv run --locked -m src.raid
