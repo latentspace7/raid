@@ -1,16 +1,51 @@
-# Reddit AI Digest
+<p align="center">
+  <img src="docs/assets/reddit-ai-digest.svg" alt="Reddit AI Digest — From threads to your inbox" width="100%" />
+</p>
 
-Fetch Reddit threads, summarize them through a Responses API compatible model, and deliver an HTML and plain text email digest. Run it from the command line or an authenticated FastAPI endpoint.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.12+" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&amp;logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Reddit-FF4500?logo=reddit&amp;logoColor=white" alt="Reddit" />
+  <img src="https://img.shields.io/badge/uv-DE5FE9?logo=uv&amp;logoColor=white" alt="uv" />
+  <img src="https://img.shields.io/badge/Gmail-EA4335?logo=gmail&amp;logoColor=white" alt="Gmail" />
+</p>
 
-[Setup](#setup) · [Usage](#usage) · [Configuration](#configuration) · [Development](#development)
+<p align="center">
+  <strong>Your communities. A concise digest. Delivered.</strong><br />
+  Turn Reddit threads into AI summaries and receive them in one email.
+</p>
+
+<p align="center">
+  <a href="#setup"><strong>Get started</strong></a> ·
+  <a href="#usage">Usage</a> ·
+  <a href="#configuration">Configuration</a> ·
+  <a href="#development">Development</a>
+</p>
+
+## At a glance
+
+Reddit AI Digest fetches Reddit threads, summarizes them through a Responses API compatible model, and delivers an HTML and plain text email digest. Run it from the command line or an authenticated FastAPI endpoint.
+
+| 🟠 Follow your communities | ✨ Summarize with AI | 📬 Read in your inbox |
+| --- | --- | --- |
+| Collect hot and new threads from configured subreddits. | Generate summaries in bounded, asynchronous batches. | Receive a digest grouped by subreddit, with links to the original posts. |
 
 ## How it works
 
-```text
-CLI or authenticated POST /digest
-  └─ Reddit OAuth → subreddit listings
-       └─ Batched model summaries
-            └─ HTML + plain text → Gmail SMTP → recipient
+```mermaid
+flowchart LR
+    A[CLI or authenticated API] --> B[Reddit threads]
+    B --> C[Batched AI summaries]
+    C --> D[HTML + plain text]
+    D --> E[Email via Gmail]
+    classDef entry fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef reddit fill:#ffedd5,stroke:#ea580c,color:#9a3412
+    classDef model fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef email fill:#ccfbf1,stroke:#0d9488,color:#134e4a
+    class A entry
+    class B reddit
+    class C model
+    class D,E email
 ```
 
 The digest skips pinned posts, combines hot listings with up to three new threads per subreddit, and removes duplicates within each subreddit. Summaries are grouped by subreddit, with titles and links taken from the original Reddit posts. External articles and comments are not downloaded; link posts are summarized from their Reddit metadata.

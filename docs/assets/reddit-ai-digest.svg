@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Reddit AI Digest — From threads to your inbox</title>
+  <desc id="desc">A dark banner with orange, violet, and teal cards showing Reddit threads becoming AI summaries and an email digest.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10182e" />
+      <stop offset="1" stop-color="#171c37" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff8356" />
+      <stop offset="0.5" stop-color="#a78bfa" />
+      <stop offset="1" stop-color="#5eead4" />
+    </linearGradient>
+    <clipPath id="frame">
+      <rect width="1200" height="360" rx="24" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="360" fill="url(#background)" />
+    <circle cx="1120" cy="42" r="248" fill="#a78bfa" opacity=".045" />
+    <circle cx="1120" cy="42" r="186" fill="none" stroke="#a78bfa" opacity=".12" />
+    <circle cx="1120" cy="42" r="130" fill="none" stroke="#5eead4" opacity=".10" />
+    <circle cx="700" cy="392" r="185" fill="#5eead4" opacity=".025" />
+    <rect x="56" y="50" width="44" height="4" rx="2" fill="url(#accent)" />
+    <g font-family="Helvetica, Arial, sans-serif">
+      <text x="56" y="84" fill="#b7c4df" font-size="12" font-weight="700" letter-spacing="3">FROM THREADS TO YOUR INBOX</text>
+      <text x="53" y="146" fill="#f8fafc" font-size="51" font-weight="700" letter-spacing="-1.5">Reddit AI Digest</text>
+      <text x="56" y="193" fill="#d5ddf5" font-size="23">Your communities. A concise digest. Delivered.</text>
+      <text x="56" y="227" fill="#a9b8d7" font-size="16">Follow the conversation with AI summaries and original links.</text>
+
+      <rect x="56" y="277" width="116" height="32" rx="16" fill="#392b2d" stroke="#795047" />
+      <circle cx="73" cy="293" r="3" fill="#ff9a70" />
+      <text x="88" y="297" fill="#ffd0b8" font-size="12">Reddit feeds</text>
+      <rect x="184" y="277" width="126" height="32" rx="16" fill="#2c2854" stroke="#6f62a3" />
+      <circle cx="201" cy="293" r="3" fill="#bda4ff" />
+      <text x="216" y="297" fill="#ded5ff" font-size="12">AI summaries</text>
+      <rect x="322" y="277" width="120" height="32" rx="16" fill="#143740" stroke="#27717c" />
+      <circle cx="339" cy="293" r="3" fill="#5eead4" />
+      <text x="354" y="297" fill="#a5f3e8" font-size="12">Email delivery</text>
+
+      <path d="M982 106v16a10 10 0 0 1-10 10H918a10 10 0 0 0-10 10v9" fill="none" stroke="#67567f" stroke-width="2" />
+      <path d="m904 146 4 5 4-5" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M908 219v14a10 10 0 0 0 10 10h54a10 10 0 0 1 10 10v5" fill="none" stroke="#3a6c78" stroke-width="2" />
+      <path d="m978 253 4 5 4-5" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+      <rect x="828" y="38" width="304" height="68" rx="16" fill="#20263d" stroke="#54414a" />
+      <rect x="844" y="52" width="40" height="40" rx="12" fill="#59372f" />
+      <path d="M855 63h18v13h-10l-6 5v-5h-2z" fill="none" stroke="#ff9a70" stroke-width="2" stroke-linejoin="round" />
+      <path d="M860 68h8m-8 4h5" stroke="#ff9a70" stroke-width="2" stroke-linecap="round" />
+      <text x="900" y="67" fill="#f8fafc" font-size="17" font-weight="700">Reddit threads</text>
+      <text x="900" y="88" fill="#a9b8d7" font-size="12">Hot posts + new conversations</text>
+
+      <rect x="744" y="151" width="330" height="68" rx="16" fill="#252540" stroke="#66588b" />
+      <rect x="760" y="165" width="40" height="40" rx="12" fill="#403260" />
+      <path d="m780 173 3.5 8.5 8.5 3.5-8.5 3.5-3.5 8.5-3.5-8.5-8.5-3.5 8.5-3.5z" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linejoin="round" />
+      <text x="816" y="180" fill="#f8fafc" font-size="17" font-weight="700">AI summaries</text>
+      <text x="816" y="201" fill="#b5b8d4" font-size="12">Batched, concise, linked to the source</text>
+
+      <rect x="828" y="258" width="304" height="68" rx="16" fill="#1a2d3d" stroke="#365e69" />
+      <rect x="844" y="272" width="40" height="40" rx="12" fill="#1f494f" />
+      <rect x="853" y="284" width="22" height="16" rx="2" fill="none" stroke="#5eead4" stroke-width="2" />
+      <path d="m854 285 10 8 10-8" fill="none" stroke="#5eead4" stroke-width="2" stroke-linejoin="round" />
+      <text x="900" y="287" fill="#f8fafc" font-size="17" font-weight="700">Email digest</text>
+      <text x="900" y="308" fill="#a9b8d7" font-size="12">HTML + plain text, ready to read</text>
+    </g>
+  </g>
+</svg>
