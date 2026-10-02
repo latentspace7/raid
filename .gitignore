@@ -9,6 +9,15 @@ wheels/
 # Virtual environments
 .venv
 .env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+/data/
+/runs/
 
 # Claude
 CLAUDE.md
