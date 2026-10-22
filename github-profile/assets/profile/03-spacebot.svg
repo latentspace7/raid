@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-labelledby="title desc">
+  <title id="title">03 — Spacebot. The bot behind Spacy.</title>
+  <desc id="desc">A friendly violet robot with cyan eyes waves beside a chat bubble, on a slate blue background.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1">
+      <stop stop-color="#2b405e" />
+      <stop offset="1" stop-color="#203149" />
+    </linearGradient>
+    <linearGradient id="shell" x2="1" y2="1">
+      <stop stop-color="#e2eaff" />
+      <stop offset=".5" stop-color="#9baaf3" />
+      <stop offset="1" stop-color="#8572bf" />
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#b6b9e8" stroke-opacity=".09" />
+    </pattern>
+  </defs>
+  <rect width="1200" height="240" rx="18" fill="url(#bg)" />
+  <rect x="1" y="1" width="1198" height="238" rx="17" fill="url(#grid)" stroke="#536b8b" />
+  <rect y="26" width="4" height="188" fill="#91c6ff" />
+  <g font-family="Menlo, Consolas, monospace" font-size="15">
+    <text x="38" y="48" fill="#91c6ff">03</text>
+    <text x="90" y="48" fill="#c1cde0" letter-spacing="1.7">CONVERSATIONAL UI / MEET SPACY</text>
+  </g>
+  <text x="37" y="124" font-family="Arial, Helvetica, sans-serif" font-size="59" font-weight="700" letter-spacing="-1" fill="#f4f2ff">Spacebot</text>
+  <text x="39" y="175" font-family="Arial, Helvetica, sans-serif" font-size="23" fill="#d1dbee">A little character. A proper conversation.</text>
+  <path d="M40 209H650" stroke="#91c6ff" stroke-opacity=".24" />
+  <circle cx="1144" cy="48" r="19" fill="#91c6ff" fill-opacity=".09" />
+  <path d="M1137 55L1151 41M1137 41H1151V55" stroke="#91c6ff" stroke-width="1.5" fill="none" />
+  <g transform="translate(762 32) scale(2.6)">
+    <path d="M32 13V8" stroke="#b6c9ff" stroke-width="2" stroke-linecap="round" />
+    <circle cx="32" cy="6" r="2.5" fill="#b5f3ff" />
+    <path d="M23 47L17 52 M42 47L51 37L55 28" stroke="url(#shell)" stroke-width="5" stroke-linecap="round" />
+    <path d="M54 29L53 24M55 29L57 23M56 30L61 27" stroke="#bfcbff" stroke-width="2.8" stroke-linecap="round" />
+    <rect x="26" y="39" width="12" height="9" rx="3" fill="#667bb9" />
+    <rect x="21" y="43" width="22" height="17" rx="8" fill="url(#shell)" stroke="#c2d2ff" stroke-width=".7" />
+    <rect x="28" y="49" width="8" height="4" rx="2" fill="#33496c" />
+    <path d="M30 51H34" stroke="#8ae9fb" stroke-width="1.4" stroke-linecap="round" />
+    <rect x="8" y="24" width="48" height="10" rx="3" fill="#9fafe7" />
+    <rect x="11" y="12.5" width="42" height="31.5" rx="12" fill="url(#shell)" stroke="#d5e1ff" stroke-width=".8" />
+    <rect x="15" y="17.5" width="34" height="22" rx="8.5" fill="#253958" />
+    <path d="M18 24C21 19 30 19 42 21" fill="none" stroke="#a7dfff" stroke-opacity=".2" stroke-width="2" />
+    <rect x="23" y="24.5" width="4.2" height="5.8" rx="2.1" fill="#9aeefe" />
+    <rect x="36.8" y="24.5" width="4.2" height="5.8" rx="2.1" fill="#9aeefe" />
+    <path d="M28 33C30.3 35 33.7 35 36 33" fill="none" stroke="#a0e6fb" stroke-width="1.5" stroke-linecap="round" />
+  </g>
+  <path d="M963 74Q963 61 976 61H1075Q1088 61 1088 74V117Q1088 130 1075 130H991L972 146V130Q963 130 963 117Z" fill="#354d71" stroke="#91c6ff" stroke-width="1.5" />
+  <g fill="#91c6ff">
+    <circle cx="996" cy="96" r="4" />
+    <circle cx="1025" cy="96" r="4" />
+    <circle cx="1054" cy="96" r="4" />
+  </g>
+  <text x="970" y="192" font-family="Menlo, Consolas, monospace" font-size="14" fill="#c1cde0" letter-spacing="1">SAY HELLO ↗</text>
+</svg>
