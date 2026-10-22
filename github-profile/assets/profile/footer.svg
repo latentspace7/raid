@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="100" viewBox="0 0 1200 100" role="img" aria-labelledby="title desc">
+<title id="title">Always learning. Usually building. Occasionally remembering to commit.</title><desc id="desc">Original geometric artwork in slate blue, cyan, violet and acid yellow.</desc>
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#2b405e"/><stop offset="1" stop-color="#203149"/></linearGradient>
+ <linearGradient id="neon"><stop stop-color="#68f6df"/><stop offset=".55" stop-color="#89a4ff"/><stop offset="1" stop-color="#d09bff"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#7450bd" stop-opacity=".25"/><stop offset="1" stop-color="#7450bd" stop-opacity="0"/></radialGradient>
+ <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#b6b9e8" stroke-opacity=".09"/></pattern>
+</defs>
+<rect width="1200" height="100" rx="18" fill="url(#bg)"/>
+<rect x="1" y="1" width="1198" height="98" rx="17" fill="url(#grid)" stroke="#536b8b"/>
+<path d="M32 50H105 M1095 50H1168" stroke="url(#neon)"/><text x="600" y="56" font-size="19" fill="#cdd8eb" font-family="Menlo, Consolas, monospace" text-anchor="middle">Always learning. Usually building. Occasionally remembering to commit.</text>
+</svg>
