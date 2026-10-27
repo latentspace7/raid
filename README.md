@@ -17,10 +17,17 @@
 
 <p align="center">
   <a href="#setup"><strong>Get started</strong></a> ·
+  <a href="#demo">Demo</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#configuration">Configuration</a> ·
   <a href="#development">Development</a>
 </p>
+
+## Demo
+
+![RAID demo: browsing a Reddit digest grouped by subreddit with summaries and source links](docs/assets/raid-demo.gif)
+
+A fresh digest of Reddit posts, summarised by the configured local model and rendered in the HTML email template. Browse the overview, grouped summaries and original thread links. Recorded before delivery; no email was sent.
 
 ## At a glance
 
